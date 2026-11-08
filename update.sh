@@ -53,7 +53,9 @@ if (( RUN_TESTS )); then
 fi
 
 # Read PORT the same way server.js does: environment first, then .env, then 4030.
-PORT="${PORT:-$(sed -n 's/^PORT=\([0-9]*\).*/\1/p' .env 2>/dev/null | tail -n1)}"
+if [[ -z "${PORT:-}" && -f .env ]]; then
+  PORT="$(sed -n 's/^PORT=\([0-9]*\).*/\1/p' .env | tail -n1 || true)"
+fi
 PORT="${PORT:-4030}"
 
 if command -v pm2 >/dev/null && pm2 describe "$APP_NAME" >/dev/null 2>&1; then
