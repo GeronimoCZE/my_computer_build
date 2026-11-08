@@ -1,0 +1,9 @@
+{
+  "datasetVersion": "2026.06-seed",
+  "currencies": {
+    "USD": {"symbol": "$", "rate": 1, "position": "before"},
+    "EUR": {"symbol": "€", "rate": 0.86, "position": "after"},
+    "CZK": {"symbol": "Kč", "rate": 21.0, "position": "after"}
+  },
+  "ratesNote": "Approximate fixed conversion rates for display only. Local prices (VAT, import) often differ from a straight conversion."
+}

@@ -1,0 +1,15 @@
+{
+  "note": "Live price lookup settings. ebayCategories: eBay US category ids used to narrow searches. parts: optional per-part overrides, e.g. {\"bestbuy\": {\"sku\": 6614151}} to pin an exact Best Buy SKU, {\"bestbuy\": {\"query\": \"...\", \"exclude\": [\"...\"]}}, {\"ebay\": {\"query\": \"...\", \"categoryId\": 27386}}, or false to skip a provider for that part. plausibleRange: live prices outside [low, high] times the estimate are treated as mismatched listings and ignored. Run `npm run map-bestbuy` to propose SKUs.",
+  "plausibleRange": [0.4, 2.5],
+  "ebayCategories": {
+    "cpu": 164,
+    "gpu": 27386,
+    "motherboard": 1244,
+    "ram": 170083,
+    "storage": null,
+    "psu": 42017,
+    "case": 42014,
+    "cooler": 131486
+  },
+  "parts": {}
+}

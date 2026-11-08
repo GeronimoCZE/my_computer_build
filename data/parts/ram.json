@@ -1,0 +1,13 @@
+[
+  {"id":"ram-gskill-z5neo-32-6000","brand":"G.Skill","name":"Trident Z5 Neo RGB 32GB (2×16GB) DDR5-6000 CL30","type":"DDR5","capacityGB":32,"modules":2,"speed":6000,"cas":30,"rgb":true,"color":"black","released":2023,"msrp":135},
+  {"id":"ram-gskill-z5-32-7200","brand":"G.Skill","name":"Trident Z5 RGB 32GB (2×16GB) DDR5-7200 CL34","type":"DDR5","capacityGB":32,"modules":2,"speed":7200,"cas":34,"rgb":true,"color":"silver","released":2023,"msrp":180},
+  {"id":"ram-corsair-veng-64-6000","brand":"Corsair","name":"Vengeance 64GB (2×32GB) DDR5-6000 CL30","type":"DDR5","capacityGB":64,"modules":2,"speed":6000,"cas":30,"rgb":false,"color":"black","released":2023,"msrp":210},
+  {"id":"ram-crucial-pro-32-5600","brand":"Crucial","name":"Pro 32GB (2×16GB) DDR5-5600 CL46","type":"DDR5","capacityGB":32,"modules":2,"speed":5600,"cas":46,"rgb":false,"color":"black","released":2023,"msrp":95},
+  {"id":"ram-kingston-beast-16-5600","brand":"Kingston","name":"Fury Beast 16GB (2×8GB) DDR5-5600 CL40","type":"DDR5","capacityGB":16,"modules":2,"speed":5600,"cas":40,"rgb":false,"color":"black","released":2022,"msrp":70},
+  {"id":"ram-gskill-ripjaws-32-3600","brand":"G.Skill","name":"Ripjaws V 32GB (2×16GB) DDR4-3600 CL16","type":"DDR4","capacityGB":32,"modules":2,"speed":3600,"cas":16,"rgb":false,"color":"red","released":2019,"msrp":90},
+  {"id":"ram-gskill-ripjaws-32-4x8","brand":"G.Skill","name":"Ripjaws V 32GB (4×8GB) DDR4-3200 CL16","type":"DDR4","capacityGB":32,"modules":4,"speed":3200,"cas":16,"rgb":false,"color":"black","released":2018,"msrp":110},
+  {"id":"ram-corsair-lpx-16-3200","brand":"Corsair","name":"Vengeance LPX 16GB (2×8GB) DDR4-3200 CL16","type":"DDR4","capacityGB":16,"modules":2,"speed":3200,"cas":16,"rgb":false,"color":"black","released":2017,"msrp":60},
+  {"id":"ram-kingston-beast-64-3200","brand":"Kingston","name":"Fury Beast 64GB (2×32GB) DDR4-3200 CL16","type":"DDR4","capacityGB":64,"modules":2,"speed":3200,"cas":16,"rgb":false,"color":"black","released":2020,"msrp":160},
+  {"id":"ram-kingston-8-2666-single","brand":"Kingston","name":"ValueRAM 8GB (1×8GB) DDR4-2666 CL19","type":"DDR4","capacityGB":8,"modules":1,"speed":2666,"cas":19,"rgb":false,"color":"green","released":2018,"msrp":35},
+  {"id":"ram-hyperx-fury-16-1866","brand":"HyperX","name":"Fury 16GB (2×8GB) DDR3-1866 CL10","type":"DDR3","capacityGB":16,"modules":2,"speed":1866,"cas":10,"rgb":false,"color":"blue","released":2014,"msrp":95}
+]
