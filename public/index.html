@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>My Computer Build · 3D PC builder</title>
+  <meta name="description" content="Plan a PC part by part in 3D. Compatibility checks, retail and used price estimates, power draw and FPS estimates for popular games.">
+  <meta name="theme-color" content="#111110">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/app.css">
+  <script type="importmap">
+    { "imports": { "three": "/vendor/three/build/three.module.js", "three/addons/": "/vendor/three/examples/jsm/" } }
+  </script>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-swap" viewBox="0 0 24 24"><path d="M7 4L3 8l4 4M3 8h13M17 20l4-4-4-4M21 16H8"/></symbol>
+    <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5zM8 3v5h7V3M8 21v-7h8v7"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6h6l2 2h10v11H3z"/></symbol>
+    <symbol id="i-share" viewBox="0 0 24 24"><path d="M10 14l11-11M15 3h6v6M19 14v6H4V5h6"/></symbol>
+    <symbol id="i-reset" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.7M4 4v4h4"/></symbol>
+    <symbol id="i-panel" viewBox="0 0 24 24"><path d="M5 3h14v18H5zM9 7l6 6M9 12l3 3"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l5 5"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3l10 18H2zM12 10v5M12 18v.5"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.5 8.5l7 7M15.5 8.5l-7 7"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></symbol>
+    <symbol id="i-new" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM12 10v7M8.5 13.5h7"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14"/></symbol>
+  </svg>
+
+  <div class="app" id="app">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="My Computer Build, start page">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect x="7" y="3" width="18" height="26" rx="2"/><path d="M11 8h10M11 12h10M11 16h6"/><circle cx="16" cy="23" r="2.2" class="led"/></svg>
+        <span class="brand-name">My Computer Build</span>
+      </a>
+      <div class="topbar-actions">
+        <button class="btn ghost" id="btn-new" type="button" title="Start a new build"><svg><use href="#i-new"/></svg><span>New</span></button>
+        <button class="btn ghost" id="btn-save" type="button" title="Save this build in your browser"><svg><use href="#i-save"/></svg><span>Save</span></button>
+        <button class="btn ghost" id="btn-builds" type="button" title="Your saved builds"><svg><use href="#i-folder"/></svg><span>My builds</span><b class="count" id="builds-count" hidden></b></button>
+        <button class="btn ghost" id="btn-share" type="button" title="Copy a link to this build"><svg><use href="#i-share"/></svg><span>Share</span></button>
+        <label class="currency">
+          <span class="sr-only">Currency</span>
+          <select id="currency"></select>
+        </label>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="panel parts" id="panel-parts" aria-labelledby="build-name-label">
+        <div class="panel-head">
+          <label id="build-name-label" class="eyebrow" for="build-name">Parts list</label>
+          <input id="build-name" class="build-name" value="Untitled build" maxlength="60" autocomplete="off" spellcheck="false">
+          <div class="progress" id="parts-progress" aria-live="polite"></div>
+        </div>
+        <div class="presets" id="presets" hidden>
+          <p class="presets-lead">Start from an empty case, or load an example build:</p>
+          <div class="preset-list" id="preset-list"></div>
+        </div>
+        <ol class="slot-list" id="slot-list"></ol>
+        <div class="totals" id="totals"></div>
+      </section>
+
+      <section class="stage" id="stage" aria-label="3D view of the build">
+        <canvas id="viewport" aria-label="Interactive 3D model of the PC case. Drag to rotate, click a part to change it."></canvas>
+        <div class="stage-top">
+          <div class="boot-chip" id="boot-chip" role="status"></div>
+          <div class="stage-tools">
+            <button class="icon-btn" id="btn-glass" type="button" aria-pressed="true" title="Toggle the glass side panel"><svg><use href="#i-panel"/></svg><span class="sr-only">Glass panel</span></button>
+            <button class="icon-btn" id="btn-view" type="button" title="Reset the camera"><svg><use href="#i-reset"/></svg><span class="sr-only">Reset view</span></button>
+          </div>
+        </div>
+        <p class="bench-note" id="bench-note" hidden></p>
+        <p class="stage-hint" id="stage-hint">Drag to rotate · scroll to zoom · click a part to change it</p>
+        <div class="tip" id="tip" hidden></div>
+        <div class="stage-loading" id="stage-loading">Loading the parts catalog…</div>
+      </section>
+
+      <nav class="tabs" id="tabs" aria-label="Sections">
+        <button type="button" data-tab="parts" aria-pressed="true">Parts</button>
+        <button type="button" data-tab="stats" aria-pressed="false">Stats <b id="tab-issues" hidden></b></button>
+        <button type="button" data-tab="perf" aria-pressed="false">FPS</button>
+      </nav>
+
+      <section class="panel stats" id="panel-stats" aria-label="Build stats">
+        <div class="stat-block" id="compat"></div>
+        <div class="stat-block" id="price"></div>
+        <div class="stat-block" id="power"></div>
+        <div class="stat-block" id="perf"></div>
+        <details class="method">
+          <summary>How the estimates work</summary>
+          <div id="method-body"></div>
+        </details>
+      </section>
+    </main>
+
+  </div>
+
+  <div class="sheet-backdrop" id="sheet-backdrop" hidden></div>
+  <aside class="sheet" id="picker" role="dialog" aria-modal="true" aria-labelledby="picker-title" hidden>
+    <div class="sheet-head">
+      <div>
+        <p class="eyebrow" id="picker-code"></p>
+        <h2 id="picker-title">Choose a part</h2>
+      </div>
+      <button class="icon-btn" id="picker-close" type="button" title="Close (Esc)"><svg><use href="#i-x"/></svg><span class="sr-only">Close</span></button>
+    </div>
+    <div class="picker-controls">
+      <label class="search">
+        <svg><use href="#i-search"/></svg>
+        <input id="picker-search" type="search" placeholder="Search by name or brand" autocomplete="off">
+      </label>
+      <div class="filter-row">
+        <div class="chips" id="era-chips" role="group" aria-label="Release era"></div>
+        <select id="picker-sort" aria-label="Sort">
+          <option value="rec">Best match</option>
+          <option value="price-asc">Price: low to high</option>
+          <option value="price-desc">Price: high to low</option>
+          <option value="new">Newest first</option>
+        </select>
+      </div>
+      <label class="toggle"><input type="checkbox" id="hide-incompatible"> <span>Hide parts that won't work with this build</span></label>
+    </div>
+    <div class="picker-list" id="picker-list" role="list"></div>
+  </aside>
+
+  <dialog class="modal" id="builds-modal" aria-labelledby="builds-title">
+    <div class="modal-head">
+      <div>
+        <p class="eyebrow">Saved in this browser</p>
+        <h2 id="builds-title">My builds</h2>
+      </div>
+      <button class="icon-btn" type="button" data-close title="Close"><svg><use href="#i-x"/></svg><span class="sr-only">Close</span></button>
+    </div>
+    <div class="builds-list" id="builds-list"></div>
+  </dialog>
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+
+  <noscript><p class="noscript">My Computer Build needs JavaScript to run the 3D builder.</p></noscript>
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+[
+  {"id":"ssd-crucial-t705-2tb","brand":"Crucial","name":"T705 2TB","kind":"ssd","interface":"nvme","formFactor":"m2","pcieGen":5,"capacityGB":2000,"readMBs":14500,"powerW":9,"released":2024,"msrp":339},
+  {"id":"ssd-samsung-990pro-2tb","brand":"Samsung","name":"990 Pro 2TB","kind":"ssd","interface":"nvme","formFactor":"m2","pcieGen":4,"capacityGB":2000,"readMBs":7450,"powerW":7,"released":2022,"msrp":249},
+  {"id":"ssd-wd-sn850x-1tb","brand":"WD","name":"Black SN850X 1TB","kind":"ssd","interface":"nvme","formFactor":"m2","pcieGen":4,"capacityGB":1000,"readMBs":7300,"powerW":6,"released":2022,"msrp":159},
+  {"id":"ssd-crucial-p3plus-1tb","brand":"Crucial","name":"P3 Plus 1TB","kind":"ssd","interface":"nvme","formFactor":"m2","pcieGen":4,"capacityGB":1000,"readMBs":5000,"powerW":5,"released":2022,"msrp":90},
+  {"id":"ssd-samsung-970evoplus-1tb","brand":"Samsung","name":"970 EVO Plus 1TB","kind":"ssd","interface":"nvme","formFactor":"m2","pcieGen":3,"capacityGB":1000,"readMBs":3500,"powerW":6,"released":2019,"msrp":250},
+  {"id":"ssd-samsung-870evo-1tb","brand":"Samsung","name":"870 EVO 1TB (SATA)","kind":"ssd","interface":"sata","formFactor":"2.5","pcieGen":null,"capacityGB":1000,"readMBs":560,"powerW":3,"released":2021,"msrp":140},
+  {"id":"hdd-seagate-barracuda-2tb","brand":"Seagate","name":"BarraCuda 2TB 7200 rpm","kind":"hdd","interface":"sata","formFactor":"3.5","pcieGen":null,"capacityGB":2000,"readMBs":220,"powerW":6,"released":2016,"msrp":70},
+  {"id":"hdd-wd-blue-4tb","brand":"WD","name":"Blue 4TB 5400 rpm","kind":"hdd","interface":"sata","formFactor":"3.5","pcieGen":null,"capacityGB":4000,"readMBs":180,"powerW":5,"released":2018,"msrp":95}
+]

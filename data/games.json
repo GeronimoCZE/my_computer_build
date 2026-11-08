@@ -1,0 +1,13 @@
+{
+  "note": "FPS model reference points: average FPS a reference system (GPU perfIndex 100 = RTX 4090, CPU gameIndex 100 = Ryzen 7 9800X3D) would reach when fully GPU-bound (gpu) or CPU-bound (cpu). Real results vary with drivers, patches, scenes and settings.",
+  "resolutions": ["1080p", "1440p", "4K"],
+  "games": [
+    {"id":"cs2","name":"Counter-Strike 2","preset":"High","gpu":{"1080p":650,"1440p":480,"4K":270},"cpu":600,"alpha":0.85,"cap":null,"vram":{"1080p":3,"1440p":4,"4K":6},"minRamGB":8},
+    {"id":"valorant","name":"Valorant","preset":"High","gpu":{"1080p":900,"1440p":700,"4K":420},"cpu":700,"alpha":0.8,"cap":null,"vram":{"1080p":2,"1440p":3,"4K":4},"minRamGB":8},
+    {"id":"fortnite","name":"Fortnite","preset":"High, DX12","gpu":{"1080p":320,"1440p":240,"4K":125},"cpu":330,"alpha":1,"cap":null,"vram":{"1080p":4,"1440p":6,"4K":8},"minRamGB":8},
+    {"id":"warzone","name":"Call of Duty: Warzone","preset":"Balanced","gpu":{"1080p":260,"1440p":200,"4K":120},"cpu":240,"alpha":1,"cap":null,"vram":{"1080p":6,"1440p":8,"4K":10},"minRamGB":16},
+    {"id":"cyberpunk","name":"Cyberpunk 2077","preset":"High, RT off","gpu":{"1080p":235,"1440p":170,"4K":85},"cpu":210,"alpha":1,"cap":null,"vram":{"1080p":6,"1440p":8,"4K":10},"minRamGB":16},
+    {"id":"bg3","name":"Baldur's Gate 3","preset":"Ultra","gpu":{"1080p":220,"1440p":170,"4K":95},"cpu":160,"alpha":1,"cap":null,"vram":{"1080p":6,"1440p":8,"4K":10},"minRamGB":16},
+    {"id":"eldenring","name":"Elden Ring","preset":"High","gpu":{"1080p":260,"1440p":190,"4K":105},"cpu":200,"alpha":1,"cap":60,"vram":{"1080p":4,"1440p":6,"4K":8},"minRamGB":12}
+  ]
+}

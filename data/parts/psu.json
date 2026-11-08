@@ -1,0 +1,11 @@
+[
+  {"id":"psu-seasonic-tx1600","brand":"Seasonic","name":"Prime TX-1600 (ATX 3.0)","wattage":1600,"formFactor":"ATX","efficiency":"80+ Titanium","atx3":true,"native16pin":true,"modular":"full","released":2023,"msrp":549},
+  {"id":"psu-corsair-rm1000x","brand":"Corsair","name":"RM1000x (2024, ATX 3.1)","wattage":1000,"formFactor":"ATX","efficiency":"80+ Gold","atx3":true,"native16pin":true,"modular":"full","released":2024,"msrp":189},
+  {"id":"psu-corsair-rm850x","brand":"Corsair","name":"RM850x (2024, ATX 3.1)","wattage":850,"formFactor":"ATX","efficiency":"80+ Gold","atx3":true,"native16pin":true,"modular":"full","released":2024,"msrp":149},
+  {"id":"psu-seasonic-gx750","brand":"Seasonic","name":"Focus GX-750 (ATX 3.0)","wattage":750,"formFactor":"ATX","efficiency":"80+ Gold","atx3":true,"native16pin":true,"modular":"full","released":2023,"msrp":129},
+  {"id":"psu-bequiet-pp12m-650","brand":"be quiet!","name":"Pure Power 12 M 650W","wattage":650,"formFactor":"ATX","efficiency":"80+ Gold","atx3":true,"native16pin":true,"modular":"full","released":2023,"msrp":99},
+  {"id":"psu-msi-a650bn","brand":"MSI","name":"MAG A650BN","wattage":650,"formFactor":"ATX","efficiency":"80+ Bronze","atx3":false,"native16pin":false,"modular":"none","released":2020,"msrp":64},
+  {"id":"psu-evga-500w1","brand":"EVGA","name":"500 W1","wattage":500,"formFactor":"ATX","efficiency":"80+ White","atx3":false,"native16pin":false,"modular":"none","released":2016,"msrp":45},
+  {"id":"psu-corsair-sf750","brand":"Corsair","name":"SF750 (2024, SFX)","wattage":750,"formFactor":"SFX","efficiency":"80+ Platinum","atx3":true,"native16pin":true,"modular":"full","released":2024,"msrp":179},
+  {"id":"psu-cm-v850-sfx","brand":"Cooler Master","name":"V850 SFX Gold","wattage":850,"formFactor":"SFX","efficiency":"80+ Gold","atx3":true,"native16pin":true,"modular":"full","released":2023,"msrp":189}
+]
