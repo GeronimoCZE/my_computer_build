@@ -11,6 +11,10 @@
 #      (PID in .server.pid, output in server.log)
 set -euo pipefail
 
+# Braces make bash read the whole script before running it, so the
+# git pull below can safely replace this file mid-run.
+{
+
 APP_NAME="my-computer-build"
 BRANCH="${BRANCH:-main}"
 RUN_TESTS=1
@@ -78,3 +82,5 @@ else
 fi
 
 say "Done: http://localhost:$PORT  (version $NEW_REV)"
+exit 0
+}
