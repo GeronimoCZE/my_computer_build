@@ -14,6 +14,21 @@ npm run validate     # checks data/ for missing fields, duplicate ids, missing p
 
 Needs Node 20 or newer. The only runtime dependencies are Express and three.js; three.js is served from `node_modules`, so nothing loads from a CDN except the Google Fonts stylesheet.
 
+## Run it with pm2
+
+```bash
+npm install -g pm2
+npm install
+cp .env.example .env          # optional: PORT (default 4030) and live price API keys
+pm2 start ecosystem.config.cjs
+pm2 save                      # remember the running apps
+pm2 startup                   # prints one command; run it so pm2 starts again after a reboot (Linux/macOS)
+```
+
+If `./update.sh` started the server earlier without pm2, stop that copy first so the port is free: `kill $(cat .server.pid) && rm .server.pid`. From then on `./update.sh` restarts the pm2 process.
+
+Day to day: `pm2 logs my-computer-build` shows the log, `pm2 reload my-computer-build` restarts it with new code or edited files in `data/` (the catalog loads at start), and `pm2 stop` or `pm2 delete my-computer-build` stops it. It runs as one process on purpose, because the live price refresher keeps one cache file and one API quota. On Windows, `pm2 startup` doesn't work; use [pm2-installer](https://github.com/jessety/pm2-installer) or a Task Scheduler entry that runs `pm2 resurrect` at logon. To put the site on the internet, point a reverse proxy such as nginx or Caddy at `http://localhost:4030`.
+
 ## Updating a running copy
 
 On the machine that runs the site, from the project folder:

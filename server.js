@@ -85,8 +85,26 @@ app.post('/api/evaluate', (req, res) => {
 
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, (err) => {
+  if (err) return; // Express 5 passes listen errors here too; the 'error' handler below reports them
   const n = Object.values(catalog.meta.counts).reduce((a, b) => a + b, 0);
   const live = providers.length ? `live prices: ${providers.map((p) => p.label).join(' + ')}` : 'live prices off (no API keys set)';
   console.log(`My Computer Build running at http://localhost:${PORT}  (${n} parts, estimates as of ${catalog.meta.pricesAsOf}, ${live})`);
 });
+server.on('error', (err) => {
+  console.error(err.code === 'EADDRINUSE' ? `Port ${PORT} is already in use. Stop the other copy, or set PORT in .env to another port.` : err);
+  process.exit(1);
+});
+
+// pm2 (and Ctrl+C) send SIGINT, Docker and systemd send SIGTERM: finish open requests, then exit
+let closing = false;
+for (const sig of ['SIGINT', 'SIGTERM']) {
+  process.on(sig, () => {
+    if (closing) return;
+    closing = true;
+    prices.stop();
+    server.close(() => process.exit(0));
+    server.closeIdleConnections?.();
+    setTimeout(() => process.exit(0), 4000).unref();
+  });
+}
