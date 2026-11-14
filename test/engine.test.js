@@ -135,3 +135,33 @@ test('drive limits follow M.2 slots; quantities survive normalising', () => {
   // swapping in a 4-module kit shrinks two kits to one
   assert.equal(withPart({ ...highEnd, qty: { ram: 2, gpu: 1 } }, catalog, 'ram', 'ram-gskill-ripjaws-32-4x8').qty.ram, 1);
 });
+
+/* ---- 2014-2018 parts: LGA1151 is two sockets in one, and AM4 boards differ by generation ---- */
+const pascal = build({
+  case: 'case-nzxt-s340', motherboard: 'mb-asus-prime-z270-a', cpu: 'cpu-i7-7700k', cooler: 'cool-cm-hyper212',
+  ram: 'ram-corsair-lpx-16-2400', gpu: 'gpu-gtx1080-fe', psu: 'psu-corsair-cx550m', storage: ['ssd-samsung-850evo-500gb'],
+});
+
+test('a Pascal-era build is compatible and boot-ready', () => {
+  const r = evaluate(pascal, catalog);
+  assert.deepEqual(r.issues.filter((i) => i.level === 'error'), []);
+  assert.equal(r.boot.ready, true);
+});
+
+test('8th/9th gen Intel on a 100/200-series board, and 6th/7th gen on 300-series, are errors', () => {
+  assert.ok(codes(evaluate({ ...pascal, cpu: 'cpu-i7-8700k' }, catalog)).includes('chipset-support'));
+  assert.ok(codes(evaluate({ ...pascal, motherboard: 'mb-asus-z390-e' }, catalog)).includes('chipset-support'));
+  assert.ok(codes(evaluate({ ...pascal, motherboard: 'mb-asus-z370-e' }, catalog)).includes('chipset-support'));
+  assert.ok(!codes(evaluate({ ...pascal, motherboard: 'mb-asus-z370-e', cpu: 'cpu-i7-8700k' }, catalog)).includes('chipset-support'));
+});
+
+test('Ryzen 1000 on B550 is an error; Ryzen 5000 on B350 needs a BIOS update', () => {
+  assert.ok(codes(evaluate(build({ motherboard: 'mb-asus-b550-plus', cpu: 'cpu-r5-1600' }), catalog)).includes('chipset-support'));
+  assert.ok(codes(evaluate(build({ motherboard: 'mb-msi-b350-tomahawk', cpu: 'cpu-r7-5800x3d' }), catalog)).includes('bios'));
+  assert.ok(!codes(evaluate(build({ motherboard: 'mb-msi-b350-tomahawk', cpu: 'cpu-r5-1600' }), catalog)).includes('bios'));
+});
+
+test('a four-thread CPU gets a stutter warning', () => {
+  assert.ok(codes(evaluate({ ...pascal, cpu: 'cpu-i5-7600k' }, catalog)).includes('few-threads'));
+  assert.ok(!codes(evaluate(pascal, catalog)).includes('few-threads'));
+});

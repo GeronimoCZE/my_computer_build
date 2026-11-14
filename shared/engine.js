@@ -98,6 +98,10 @@ export function checkCompatibility(p) {
     }
   }
 
+  if (cpu && cpu.threads <= 4) {
+    out.push(issue('warn', 'few-threads', ['cpu'], `The ${cpu.name} has ${cpu.threads} threads. Newer games such as Warzone, Cyberpunk 2077 and Baldur's Gate 3 can stutter on it even when the average FPS looks fine.`));
+  }
+
   // Memory (several identical kits count together)
   const mem = memoryOf(p);
   if (ram && mb) {

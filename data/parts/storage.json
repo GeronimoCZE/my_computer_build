@@ -6,5 +6,7 @@
   {"id":"ssd-samsung-970evoplus-1tb","brand":"Samsung","name":"970 EVO Plus 1TB","kind":"ssd","interface":"nvme","formFactor":"m2","pcieGen":3,"capacityGB":1000,"readMBs":3500,"powerW":6,"released":2019,"msrp":250},
   {"id":"ssd-samsung-870evo-1tb","brand":"Samsung","name":"870 EVO 1TB (SATA)","kind":"ssd","interface":"sata","formFactor":"2.5","pcieGen":null,"capacityGB":1000,"readMBs":560,"powerW":3,"released":2021,"msrp":140},
   {"id":"hdd-seagate-barracuda-2tb","brand":"Seagate","name":"BarraCuda 2TB 7200 rpm","kind":"hdd","interface":"sata","formFactor":"3.5","pcieGen":null,"capacityGB":2000,"readMBs":220,"powerW":6,"released":2016,"msrp":70},
-  {"id":"hdd-wd-blue-4tb","brand":"WD","name":"Blue 4TB 5400 rpm","kind":"hdd","interface":"sata","formFactor":"3.5","pcieGen":null,"capacityGB":4000,"readMBs":180,"powerW":5,"released":2018,"msrp":95}
+  {"id":"hdd-wd-blue-4tb","brand":"WD","name":"Blue 4TB 5400 rpm","kind":"hdd","interface":"sata","formFactor":"3.5","pcieGen":null,"capacityGB":4000,"readMBs":180,"powerW":5,"released":2018,"msrp":95},
+  {"id":"ssd-samsung-960evo-500gb","brand":"Samsung","name":"960 EVO 500GB","kind":"ssd","interface":"nvme","formFactor":"m2","pcieGen":3,"capacityGB":500,"readMBs":3200,"powerW":5,"released":2016,"msrp":249},
+  {"id":"ssd-samsung-850evo-500gb","brand":"Samsung","name":"850 EVO 500GB (SATA)","kind":"ssd","interface":"sata","formFactor":"2.5","pcieGen":null,"capacityGB":500,"readMBs":540,"powerW":3,"released":2014,"msrp":260}
 ]

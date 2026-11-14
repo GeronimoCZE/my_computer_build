@@ -33,6 +33,12 @@
     <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></symbol>
     <symbol id="i-new" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM12 10v7M8.5 13.5h7"/></symbol>
     <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14"/></symbol>
+    <symbol id="i-cart" viewBox="0 0 24 24"><path d="M3 4h2.5l2.2 11h10.6L20.5 8H6.6"/><circle cx="9" cy="19.5" r="1.4"/><circle cx="17" cy="19.5" r="1.4"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><path d="M8 8h12v12H8zM16 8V4H4v12h4"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></symbol>
+    <symbol id="i-print" viewBox="0 0 24 24"><path d="M7 9V3h10v6M7 17H4v-8h16v8h-3M7 14h10v7H7z"/></symbol>
+    <symbol id="i-out" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"/></symbol>
   </svg>
 
   <div class="app" id="app">
@@ -141,6 +147,36 @@
     </div>
     <div class="builds-list" id="builds-list"></div>
   </dialog>
+
+  <dialog class="modal shop" id="shop-modal" aria-labelledby="shop-title">
+    <div class="modal-head">
+      <div>
+        <p class="eyebrow">Shopping list</p>
+        <h2 id="shop-title">Untitled build</h2>
+      </div>
+      <button class="icon-btn" type="button" data-close title="Close"><svg><use href="#i-x"/></svg><span class="sr-only">Close</span></button>
+    </div>
+    <div class="shop-controls">
+      <div class="seg" id="shop-cond" role="group" aria-label="Condition"></div>
+      <label class="shop-site"><span>Search</span><select id="shop-site" aria-label="eBay site"></select></label>
+    </div>
+    <div class="shop-body">
+      <div class="shop-banner" id="shop-banner" hidden></div>
+      <ol class="shop-list" id="shop-list"></ol>
+      <p class="shop-fine" id="shop-fine"></p>
+    </div>
+    <div class="shop-foot">
+      <div class="shop-sum" id="shop-sum" aria-live="polite"></div>
+      <div class="shop-export" role="group" aria-label="Export the list">
+        <button class="btn primary" type="button" data-export="link"><svg><use href="#i-link"/></svg><span>Copy link</span></button>
+        <button class="btn line" type="button" data-export="text"><svg><use href="#i-copy"/></svg><span>Copy text</span></button>
+        <button class="btn line" type="button" data-export="csv"><svg><use href="#i-download"/></svg><span>CSV</span></button>
+        <button class="btn line" type="button" data-export="print"><svg><use href="#i-print"/></svg><span>Print</span></button>
+      </div>
+    </div>
+  </dialog>
+
+  <div class="print-sheet" id="print-sheet" aria-hidden="true"></div>
 
   <div class="toasts" id="toasts" aria-live="polite"></div>
 

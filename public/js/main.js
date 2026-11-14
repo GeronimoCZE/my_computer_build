@@ -1,5 +1,6 @@
 import { SLOTS, MAX_STORAGE, STACKABLE, emptyBuild, normalizeBuild, evaluate, candidateIssues, canAddMore, withPart, qtyOf, memoryOf, gpuSlotsOf } from '/shared/engine.js';
 import { store, encodeShare, decodeShare } from './store.js';
+import { EBAY_SITES, CONDITIONS, shopLines, targetPrice, ebayUrl, listTotals, toText, toCsv } from './shop.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -18,6 +19,7 @@ const PRESETS = [
   { name: '1440p sweet spot', tag: '≈ $2.0k · RX 9070 XT', build: { case: 'case-jonsbo-d31', motherboard: 'mb-gb-b650m-elite', cpu: 'cpu-r7-7800x3d', cooler: 'cool-thermalright-pa120se', ram: 'ram-gskill-z5neo-32-6000', gpu: 'gpu-rx9070xt-pulse', psu: 'psu-seasonic-gx750', storage: ['ssd-wd-sn850x-1tb'] } },
   { name: '4K flagship', tag: '≈ $5.6k · RTX 5090', build: { case: 'case-lianli-o11-evo', motherboard: 'mb-asus-x870e-e', cpu: 'cpu-r7-9800x3d', cooler: 'cool-arctic-lf3-360', ram: 'ram-corsair-veng-64-6000', gpu: 'gpu-rtx5090-fe', psu: 'psu-seasonic-tx1600', storage: ['ssd-crucial-t705-2tb', 'ssd-samsung-990pro-2tb'] } },
   { name: 'Dual-GPU workstation', tag: '≈ $5.1k · 2× RTX 5080', build: { case: 'case-fractal-north', motherboard: 'mb-asus-x870e-e', cpu: 'cpu-r9-9950x', cooler: 'cool-arctic-lf3-360', ram: 'ram-crucial-pro-32-5600', gpu: 'gpu-rtx5080-fe', psu: 'psu-seasonic-tx1600', storage: ['ssd-samsung-990pro-2tb', 'ssd-samsung-990pro-2tb', 'hdd-wd-blue-4tb'], qty: { ram: 2, gpu: 2 } } },
+  { name: 'Pascal classic 2017', tag: 'used · GTX 1080', build: { case: 'case-nzxt-s340', motherboard: 'mb-asus-prime-z270-a', cpu: 'cpu-i7-7700k', cooler: 'cool-cm-hyper212', ram: 'ram-corsair-lpx-16-2400', gpu: 'gpu-gtx1080-fe', psu: 'psu-corsair-cx550m', storage: ['ssd-samsung-850evo-500gb'] } },
   { name: 'Retro 2014 rig', tag: 'used · i7-4790K', build: { case: 'case-nzxt-h510', motherboard: 'mb-asus-z97-a', cpu: 'cpu-i7-4790k', cooler: 'cool-cm-hyper212', ram: 'ram-hyperx-fury-16-1866', gpu: 'gpu-gtx1080ti-fe', psu: 'psu-evga-500w1', storage: ['ssd-samsung-870evo-1tb', 'hdd-seagate-barracuda-2tb'] } },
 ];
 
@@ -33,6 +35,7 @@ const state = {
   tab: 'parts',
   picker: null, // { slot, replaceId } — replaceId: the drive being swapped (storage only)
   pickerEra: 'all',
+  shop: { cond: 'used', site: 'us' },
   result: null,
 };
 
@@ -74,9 +77,14 @@ function perfOf(p) {
 
 /* ---------------------------------------------------------------- state changes */
 function commit({ flash, persist = true } = {}) {
+  const wasReady = state.result?.boot.ready;
   state.result = evaluate(state.build, state.catalog, { resolution: state.resolution });
   render();
   if (flash) flashRow(flash);
+  if ($('#shop-modal').open) renderShop();
+  else if (persist && !wasReady && state.result.boot.ready) {
+    toast('Ready to boot. Your shopping list is ready too.', { action: 'Open list', onAction: openShop, ms: 7000 });
+  }
   if (persist) {
     state.dirty = true;
     store.saveCurrent({ build: state.build, name: state.name, savedId: state.savedId });
@@ -322,8 +330,9 @@ function renderTotals() {
   const pr = state.result.price;
   const anyLive = Object.values(state.result.parts).flat().some((p) => p?.price?.live);
   $('#totals').innerHTML = `
-    <div class="total"><p class="eyebrow">${anyLive ? 'Buying new' : 'Retail estimate'}</p><span class="num">${pr.count ? money(pr.retail) : '—'}</span></div>
-    <div class="total used"><p class="eyebrow">${anyLive ? 'Buying used' : 'Used estimate'}</p><span class="num">${pr.count ? money(pr.used) : '—'}</span></div>`;
+    <div class="total"><p class="eyebrow">${anyLive ? 'Buying new' : 'New, est.'}</p><span class="num">${pr.count ? money(pr.retail) : '—'}</span></div>
+    <div class="total used"><p class="eyebrow">${anyLive ? 'Buying used' : 'Used, est.'}</p><span class="num">${pr.count ? money(pr.used) : '—'}</span></div>
+    <button type="button" class="btn ${state.result.boot.ready ? 'primary' : 'line'} shop-open" data-shop ${pr.count ? '' : 'disabled'} title="Shopping list with eBay links">${icon('cart')}<span>Shopping list</span></button>`;
 }
 
 function renderCompat() {
@@ -371,7 +380,10 @@ function renderPrice() {
     </div>
     <div class="price-bar"><span class="retail" style="width:${(pr.retail / max) * 100}%"></span></div>
     <div class="price-bar"><span style="width:${(pr.used / max) * 100}%"></span></div>
-    <p class="fine">${liveNote}${pr.savings > 0 ? `Going used saves about <b>${money(pr.savings)}</b>. ` : ''}${pr.discontinued.length ? `<b>${pr.discontinued.length}</b> part${pr.discontinued.length > 1 ? 's are' : ' is'} no longer sold new, so the new total uses ${pr.discontinued.length > 1 ? 'their' : 'its'} used price. ` : ''}Launch prices added up to ${money(pr.msrp, { currency: 'USD' })}${state.currency !== 'USD' ? ' (USD)' : ''}.</p>`;
+    <p class="fine">${liveNote}${pr.savings > 0 ? `Going used saves about <b>${money(pr.savings)}</b>. ` : ''}${pr.discontinued.length ? `<b>${pr.discontinued.length}</b> part${pr.discontinued.length > 1 ? 's are' : ' is'} no longer sold new, so the new total uses ${pr.discontinued.length > 1 ? 'their' : 'its'} used price. ` : ''}Launch prices added up to ${money(pr.msrp, { currency: 'USD' })}${state.currency !== 'USD' ? ' (USD)' : ''}.</p>
+    <button type="button" class="shop-cta${state.result.boot.ready ? ' ready' : ''}" data-shop>
+      ${icon('cart')}<span><b>${state.result.boot.ready ? 'Make the shopping list' : 'Shopping list so far'}</b><small>${state.result.boot.ready ? 'Every part with an eBay search, ready to copy, share or print' : `${pr.count} part${pr.count === 1 ? '' : 's'} with eBay searches. Finish the build first to buy with confidence.`}</small></span>${icon('out')}
+    </button>`;
 }
 
 function monthName(ym) {
@@ -554,6 +566,148 @@ function renderPicker() {
   }).join('');
 }
 
+
+/* ---------------------------------------------------------------- shopping list */
+const shopSig = () => encodeShare(state.build, '');
+const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'build';
+
+function shopLink() {
+  return `${location.origin}${location.pathname}${encodeShare(state.build, state.name, { shop: state.shop.cond, site: state.shop.site })}`;
+}
+
+function openShop() {
+  if (!state.result.price.count) { toast('Add some parts first, then make a list.'); return; }
+  renderShop();
+  const m = $('#shop-modal');
+  if (!m.open) m.showModal();
+}
+
+function renderShop() {
+  const { cond, site } = state.shop;
+  const r = state.result;
+  const lines = shopLines(r.parts, SLOTS);
+  const bought = store.loadBought(shopSig());
+  const tot = listTotals(lines, cond, bought);
+  const meta = state.catalog.meta;
+
+  $('#shop-title').textContent = state.name;
+  $('#shop-cond').innerHTML = Object.entries(CONDITIONS).map(([k, c]) => `<button type="button" data-cond="${k}" aria-pressed="${k === cond}">${c.label}</button>`).join('');
+  $('#shop-site').innerHTML = Object.entries(EBAY_SITES).map(([k, x]) => `<option value="${k}"${k === site ? ' selected' : ''}>${x.label} · ${x.region}</option>`).join('');
+
+  const banner = $('#shop-banner');
+  const errs = r.boot.errors;
+  const missing = r.boot.missing.filter((m) => m !== 'cooler' || !r.parts.cpu?.boxCooler);
+  if (errs) {
+    banner.className = 'shop-banner bad';
+    banner.innerHTML = `${icon('stop')}<div><b>${errs} problem${errs > 1 ? 's' : ''} to fix before this build boots.</b> Some of these parts won’t work together, so sort that out before you buy. <button type="button" data-goto-stats>See what’s wrong</button></div>`;
+    banner.hidden = false;
+  } else if (missing.length) {
+    banner.className = 'shop-banner';
+    banner.innerHTML = `${icon('info')}<div><b>Not finished yet.</b> Still missing: ${esc(missing.map((m) => SLOT[m].label.toLowerCase()).join(', '))}. The list has what you’ve picked so far.</div>`;
+    banner.hidden = false;
+  } else banner.hidden = true;
+
+  $('#shop-list').innerHTML = lines.map((l) => {
+    const p = l.part;
+    const t = targetPrice(p, cond);
+    const got = bought.has(l.key);
+    const lu = p.price.live?.used;
+    const live = cond !== 'new' && t.basis === 'used' && lu ? `<span class="shop-live">${liveDot(lu, 'used')}${lu.count} listings now, typical ${money(lu.price)}</span>` : '';
+    const basis = t.value == null ? 'no estimate' : `${t.basis}${t.note ? ` · ${t.note}` : ''}${l.qty > 1 ? ` · ${money(t.value)} each` : ''}`;
+    return `<li class="shop-row${got ? ' bought' : ''}" data-key="${esc(l.key)}">
+      <label class="shop-check" title="${got ? 'Bought' : 'Mark as bought'}">
+        <input type="checkbox" data-buy="${esc(l.key)}"${got ? ' checked' : ''}>
+        <span class="box">${icon('check')}</span><span class="sr-only">Bought ${esc(p.name)}</span>
+      </label>
+      <span class="slot-code">${l.code}</span>
+      <div class="shop-main">
+        <div class="slot-label">${esc(l.label)}</div>
+        <div class="shop-name">${l.qty > 1 ? `<span class="qty-x">${l.qty}×</span> ` : ''}<span class="brand-s">${esc(p.brand)}</span> ${esc(p.name)}</div>
+        <div class="shop-q"><span title="eBay search">“${esc(p.shop?.q || p.name)}”</span>${live}</div>
+      </div>
+      <div class="shop-price"><span class="num">${money(t.value == null ? null : t.value * l.qty)}</span><small>${esc(basis)}</small></div>
+      <a class="btn line shop-go" href="${esc(ebayUrl(p, cond, site))}" target="_blank" rel="noopener" data-go="${esc(l.key)}" aria-label="Search eBay for ${esc(p.name)}">${icon('search')}<span>eBay</span></a>
+    </li>`;
+  }).join('');
+
+  const pct = tot.count ? Math.round((tot.boughtCount / tot.count) * 100) : 0;
+  $('#shop-sum').innerHTML = `
+    <div class="shop-total"><p class="eyebrow">Est. ${CONDITIONS[cond].label.toLowerCase()} total</p><span class="num">${money(tot.total)}</span></div>
+    <div class="shop-progress">
+      <span class="mono">${tot.boughtCount ? `${tot.boughtCount} of ${tot.count} bought · ${money(tot.left)} to go` : 'Tick parts off as you buy them'}</span>
+      <i><b style="width:${pct}%"></b></i>
+    </div>`;
+
+  const anyLive = lines.some((l) => l.part.price.live?.used);
+  $('#shop-fine').innerHTML = `Prices are ${anyLive ? 'a mix of live eBay asking prices (green dot) and ' : ''}estimates from ${esc(monthName(meta.pricesAsOf))}${state.currency !== 'USD' ? `, converted to ${state.currency} at a fixed rate` : ''}. Each link searches Buy It Now listings${CONDITIONS[cond].ebay ? ` in ${CONDITIONS[cond].label.toLowerCase()} condition` : ''}${EBAY_SITES[site].categories ? ' in the matching eBay category' : ''}. Check the photos, the seller’s condition notes, shipping and returns before you buy.`;
+}
+
+function setBought(key, on) {
+  const sig = shopSig();
+  const set = store.loadBought(sig);
+  if (on) set.add(key); else set.delete(key);
+  store.saveBought(sig, set);
+  renderShop();
+}
+
+function shopExportData() {
+  const lines = shopLines(state.result.parts, SLOTS);
+  return { lines, bought: store.loadBought(shopSig()), cond: state.shop.cond, site: state.shop.site };
+}
+
+function download(name, text, type) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const a = Object.assign(document.createElement('a'), { href: url, download: name });
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+async function exportShop(kind) {
+  const d = shopExportData();
+  const link = shopLink();
+  if (kind === 'link') {
+    history.replaceState(null, '', link);
+    if (navigator.share && matchMedia('(pointer: coarse)').matches) {
+      try { await navigator.share({ title: `${state.name} · shopping list`, url: link }); return; } catch (e) { if (e.name === 'AbortError') return; }
+    }
+    try { await navigator.clipboard.writeText(link); toast('Link copied. It opens this shopping list with the same parts and eBay searches.'); }
+    catch { toast('The link is in the address bar. Copy it from there.'); }
+  } else if (kind === 'text') {
+    const text = toText(d.lines, { name: state.name, cond: d.cond, site: d.site, money, link, asOf: `estimates from ${monthName(state.catalog.meta.pricesAsOf)}`, bought: d.bought });
+    try { await navigator.clipboard.writeText(text); toast('List copied as text, with a link for every part.'); }
+    catch { download(`${slug(state.name)}-shopping-list.txt`, text, 'text/plain;charset=utf-8'); toast('Clipboard blocked, so the list was downloaded as a text file.'); }
+  } else if (kind === 'csv') {
+    const rate = state.catalog.meta.currencies[state.currency].rate;
+    download(`${slug(state.name)}-shopping-list.csv`, toCsv(d.lines, { cond: d.cond, site: d.site, currency: state.currency, rate, bought: d.bought }), 'text/csv;charset=utf-8');
+    toast('Downloaded the list as CSV. It opens in Excel, Numbers or Google Sheets.');
+  } else if (kind === 'print') {
+    fillPrintSheet();
+    window.print();
+  }
+}
+
+/** A plain paper version: filled just before printing, hidden on screen. */
+function fillPrintSheet() {
+  const d = shopExportData();
+  const tot = listTotals(d.lines, d.cond, d.bought);
+  const date = new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+  $('#print-sheet').innerHTML = `
+    <header><p>My Computer Build · shopping list</p><h1>${esc(state.name)}</h1>
+      <p>${CONDITIONS[d.cond].label} parts · ${esc(EBAY_SITES[d.site].label)} · ${esc(date)} · prices are estimates from ${esc(monthName(state.catalog.meta.pricesAsOf))}</p></header>
+    <table>
+      <thead><tr><th></th><th>#</th><th>Part</th><th>Search eBay for</th><th>Target</th></tr></thead>
+      <tbody>${d.lines.map((l) => {
+        const t = targetPrice(l.part, d.cond);
+        return `<tr><td class="ck">${d.bought.has(l.key) ? '☑' : '☐'}</td><td>${l.code}</td>
+          <td><small>${esc(l.label)}</small><br>${l.qty > 1 ? `${l.qty}× ` : ''}${esc(l.part.brand)} ${esc(l.part.name)}</td>
+          <td>${esc(l.part.shop?.q || l.part.name)}</td>
+          <td class="n">${money(t.value == null ? null : t.value * l.qty)}<br><small>${esc(t.basis || '')}${t.note ? `, ${esc(t.note)}` : ''}</small></td></tr>`;
+      }).join('')}</tbody>
+      <tfoot><tr><td colspan="4">Total, estimated</td><td class="n">${money(tot.total)}</td></tr></tfoot>
+    </table>
+    <p class="ps">Made with My Computer Build · ${esc(location.host)}. Check condition, shipping and returns before you buy.</p>`;
+}
+
 /* ---------------------------------------------------------------- saved builds */
 function summary() {
   const r = state.result;
@@ -725,6 +879,22 @@ function bindEvents() {
     try { await navigator.clipboard.writeText(url); toast('Link copied. Anyone with it sees this exact build.'); }
     catch { toast('Link is in the address bar. Copy it from there.'); }
   });
+  document.addEventListener('click', (e) => { if (e.target.closest('[data-shop]')) openShop(); });
+  $('#shop-modal').addEventListener('click', (e) => {
+    const m = e.currentTarget;
+    if (e.target === m || e.target.closest('[data-close]')) { m.close(); return; }
+    const c = e.target.closest('[data-cond]');
+    if (c) { state.shop.cond = c.dataset.cond; store.savePrefs({ ...store.loadPrefs(), shopCond: state.shop.cond }); renderShop(); return; }
+    const ex = e.target.closest('[data-export]');
+    if (ex) { exportShop(ex.dataset.export); return; }
+    if (e.target.closest('[data-goto-stats]')) { m.close(); setTab('stats'); $('#compat').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  });
+  $('#shop-modal').addEventListener('change', (e) => {
+    if (e.target.matches('[data-buy]')) setBought(e.target.dataset.buy, e.target.checked);
+    if (e.target.id === 'shop-site') { state.shop.site = e.target.value; store.savePrefs({ ...store.loadPrefs(), shopSite: state.shop.site }); renderShop(); }
+  });
+  window.addEventListener('beforeprint', () => { if ($('#shop-modal').open) fillPrintSheet(); });
+  window.addEventListener('afterprint', () => { $('#print-sheet').innerHTML = ''; });
   $('#currency').addEventListener('change', (e) => {
     state.currency = e.target.value;
     store.savePrefs({ ...store.loadPrefs(), currency: state.currency });
@@ -764,6 +934,8 @@ async function init() {
   const prefs = store.loadPrefs();
   state.currency = data.meta.currencies[prefs.currency] ? prefs.currency : 'USD';
   state.resolution = data.resolutions.includes(prefs.resolution) ? prefs.resolution : '1440p';
+  state.shop.cond = CONDITIONS[prefs.shopCond] ? prefs.shopCond : 'used';
+  state.shop.site = EBAY_SITES[prefs.shopSite] ? prefs.shopSite : state.currency === 'USD' ? 'us' : 'de';
   $('#currency').innerHTML = Object.keys(data.meta.currencies).map((c) => `<option value="${c}"${c === state.currency ? ' selected' : ''}>${c}</option>`).join('');
 
   $('#preset-list').innerHTML = PRESETS.map((p, i) => `<button type="button" class="preset" data-preset="${i}"><b>${esc(p.name)}</b><span>${esc(p.tag)}</span></button>`).join('');
@@ -787,6 +959,12 @@ async function init() {
   $('#build-name').value = state.name;
   state.result = evaluate(state.build, state.catalog, { resolution: state.resolution });
   render();
+  // a shopping-list link opens the list with the sender's condition and eBay site
+  if (shared?.shop && CONDITIONS[shared.shop]) {
+    state.shop.cond = shared.shop;
+    if (EBAY_SITES[shared.site]) state.shop.site = shared.site;
+    openShop();
+  }
 
   // 3D last, so the lists are usable even if WebGL fails
   try {

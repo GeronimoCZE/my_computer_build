@@ -7,5 +7,8 @@
   {"id":"psu-msi-a650bn","brand":"MSI","name":"MAG A650BN","wattage":650,"formFactor":"ATX","efficiency":"80+ Bronze","atx3":false,"native16pin":false,"modular":"none","released":2020,"msrp":64},
   {"id":"psu-evga-500w1","brand":"EVGA","name":"500 W1","wattage":500,"formFactor":"ATX","efficiency":"80+ White","atx3":false,"native16pin":false,"modular":"none","released":2016,"msrp":45},
   {"id":"psu-corsair-sf750","brand":"Corsair","name":"SF750 (2024, SFX)","wattage":750,"formFactor":"SFX","efficiency":"80+ Platinum","atx3":true,"native16pin":true,"modular":"full","released":2024,"msrp":179},
-  {"id":"psu-cm-v850-sfx","brand":"Cooler Master","name":"V850 SFX Gold","wattage":850,"formFactor":"SFX","efficiency":"80+ Gold","atx3":true,"native16pin":true,"modular":"full","released":2023,"msrp":189}
+  {"id":"psu-cm-v850-sfx","brand":"Cooler Master","name":"V850 SFX Gold","wattage":850,"formFactor":"SFX","efficiency":"80+ Gold","atx3":true,"native16pin":true,"modular":"full","released":2023,"msrp":189},
+  {"id":"psu-evga-650-g3","brand":"EVGA","name":"SuperNOVA 650 G3","wattage":650,"formFactor":"ATX","efficiency":"80+ Gold","atx3":false,"native16pin":false,"modular":"full","released":2017,"msrp":99},
+  {"id":"psu-seasonic-focus-750","brand":"Seasonic","name":"Focus Plus 750 Gold","wattage":750,"formFactor":"ATX","efficiency":"80+ Gold","atx3":false,"native16pin":false,"modular":"full","released":2017,"msrp":109},
+  {"id":"psu-corsair-cx550m","brand":"Corsair","name":"CX550M","wattage":550,"formFactor":"ATX","efficiency":"80+ Bronze","atx3":false,"native16pin":false,"modular":"semi","released":2017,"msrp":69}
 ]
