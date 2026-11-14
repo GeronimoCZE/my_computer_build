@@ -9,5 +9,9 @@
   {"id":"ram-corsair-lpx-16-3200","brand":"Corsair","name":"Vengeance LPX 16GB (2×8GB) DDR4-3200 CL16","type":"DDR4","capacityGB":16,"modules":2,"speed":3200,"cas":16,"rgb":false,"color":"black","released":2017,"msrp":60},
   {"id":"ram-kingston-beast-64-3200","brand":"Kingston","name":"Fury Beast 64GB (2×32GB) DDR4-3200 CL16","type":"DDR4","capacityGB":64,"modules":2,"speed":3200,"cas":16,"rgb":false,"color":"black","released":2020,"msrp":160},
   {"id":"ram-kingston-8-2666-single","brand":"Kingston","name":"ValueRAM 8GB (1×8GB) DDR4-2666 CL19","type":"DDR4","capacityGB":8,"modules":1,"speed":2666,"cas":19,"rgb":false,"color":"green","released":2018,"msrp":35},
-  {"id":"ram-hyperx-fury-16-1866","brand":"HyperX","name":"Fury 16GB (2×8GB) DDR3-1866 CL10","type":"DDR3","capacityGB":16,"modules":2,"speed":1866,"cas":10,"rgb":false,"color":"blue","released":2014,"msrp":95}
+  {"id":"ram-hyperx-fury-16-1866","brand":"HyperX","name":"Fury 16GB (2×8GB) DDR3-1866 CL10","type":"DDR3","capacityGB":16,"modules":2,"speed":1866,"cas":10,"rgb":false,"color":"blue","released":2014,"msrp":95},
+  {"id":"ram-corsair-lpx-16-2400","brand":"Corsair","name":"Vengeance LPX 16GB (2×8GB) DDR4-2400 CL14","type":"DDR4","capacityGB":16,"modules":2,"speed":2400,"cas":14,"rgb":false,"color":"black","released":2016,"msrp":115},
+  {"id":"ram-crucial-ballistix-16-3000","brand":"Crucial","name":"Ballistix Sport LT 16GB (2×8GB) DDR4-3000 CL15","type":"DDR4","capacityGB":16,"modules":2,"speed":3000,"cas":15,"rgb":false,"color":"grey","released":2017,"msrp":159},
+  {"id":"ram-gskill-ripjaws-8-2400","brand":"G.Skill","name":"Ripjaws V 8GB (2×4GB) DDR4-2400 CL15","type":"DDR4","capacityGB":8,"modules":2,"speed":2400,"cas":15,"rgb":false,"color":"red","released":2015,"msrp":59},
+  {"id":"ram-corsair-veng-16-1600","brand":"Corsair","name":"Vengeance 16GB (2×8GB) DDR3-1600 CL9","type":"DDR3","capacityGB":16,"modules":2,"speed":1600,"cas":9,"rgb":false,"color":"black","released":2013,"msrp":139}
 ]

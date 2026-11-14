@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadCatalog, DATA_DIR } from './lib/catalog.js';
 import { createPriceService, providersFromEnv, loadSources } from './lib/prices/service.js';
+import { shopQuery } from './lib/prices/match.js';
 import { evaluate, normalizeBuild, SLOTS } from './shared/engine.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -24,6 +25,12 @@ function rebuildClientCatalog() {
 // and every price is the seeded estimate from data/prices.json.
 const sources = await loadSources(path.join(DATA_DIR, 'price-sources.json'));
 const providers = providersFromEnv(process.env, { fetch: globalThis.fetch, sources });
+
+// Search text and category for the shopping list's eBay links. Overrides in price-sources.json apply here too.
+for (const p of Object.values(catalog.byId)) {
+  const cfg = sources.parts?.[p.id]?.ebay;
+  p.shop = { q: shopQuery(p, cfg?.query), cat: cfg?.categoryId ?? sources.ebayCategories?.[p.category] ?? null };
+}
 const prices = createPriceService({
   catalog,
   providers,
