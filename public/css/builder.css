@@ -441,7 +441,7 @@
 @media (max-width: 560px) {
   .bb-name { gap: 10px; }
   .build-name { font-size: 15px; }
-  .progress span:not(.pips) { display: none; }
+  .progress { display: none; }
   .bb-actions { gap: 0; }
   #btn-new { display: none; }
   .bb-actions #btn-builds { width: 34px; padding: 0; }
