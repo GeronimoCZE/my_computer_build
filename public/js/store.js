@@ -40,6 +40,8 @@ export const store = {
     write(KEY_BUILDS, list);
     return { removed, idx };
   },
+  /** Replace the browser's saved builds (after moving them to an account). */
+  keepBuilds(list) { return write(KEY_BUILDS, list); },
   restoreBuild(entry, idx) {
     const list = this.listBuilds();
     list.splice(Math.min(idx, list.length), 0, entry);

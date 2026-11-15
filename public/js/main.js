@@ -1,10 +1,15 @@
 import { SLOTS, MAX_STORAGE, STACKABLE, emptyBuild, normalizeBuild, evaluate, candidateIssues, canAddMore, withPart, qtyOf, memoryOf, gpuSlotsOf } from '/shared/engine.js';
+import { PRESETS } from '/shared/presets.js';
+import { specLine } from '/shared/format.js';
 import { store, encodeShare, decodeShare } from './store.js';
 import { EBAY_SITES, CONDITIONS, shopLines, targetPrice, ebayUrl, listTotals, toText, toCsv } from './shop.js';
+import { toast } from './ui.js';
+import { account } from './account.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const icon = (id) => `<svg aria-hidden="true"><use href="#i-${id}"/></svg>`;
+const icon = (id) => `<svg class="ic" aria-hidden="true"><use href="#i-${id}"/></svg>`;
+const catTile = (slot) => `<span class="cat-tile">${icon(`cat-${slot}`)}</span>`;
 const SLOT = Object.fromEntries(SLOTS.map((s) => [s.key, s]));
 const LEVEL_ICON = { error: 'stop', warn: 'alert', info: 'info' };
 const KWH = { USD: 0.17, EUR: 0.3, CZK: 6.0 };
@@ -14,14 +19,6 @@ const PICK_TITLE = { case: 'Choose a case', motherboard: 'Choose a motherboard',
 const UNIT = { ram: ['kit', 'kits'], gpu: ['card', 'cards'], storage: ['drive', 'drives'] };
 const plural = (n, [one, many]) => `${n} ${n === 1 ? one : many}`;
 
-const PRESETS = [
-  { name: 'Budget 1080p', tag: '≈ $900 · Arc B580', build: { case: 'case-nzxt-h5-flow', motherboard: 'mb-asus-b550-plus', cpu: 'cpu-r5-5600', cooler: null, ram: 'ram-corsair-lpx-16-3200', gpu: 'gpu-arc-b580-le', psu: 'psu-bequiet-pp12m-650', storage: ['ssd-crucial-p3plus-1tb'] } },
-  { name: '1440p sweet spot', tag: '≈ $2.0k · RX 9070 XT', build: { case: 'case-jonsbo-d31', motherboard: 'mb-gb-b650m-elite', cpu: 'cpu-r7-7800x3d', cooler: 'cool-thermalright-pa120se', ram: 'ram-gskill-z5neo-32-6000', gpu: 'gpu-rx9070xt-pulse', psu: 'psu-seasonic-gx750', storage: ['ssd-wd-sn850x-1tb'] } },
-  { name: '4K flagship', tag: '≈ $5.6k · RTX 5090', build: { case: 'case-lianli-o11-evo', motherboard: 'mb-asus-x870e-e', cpu: 'cpu-r7-9800x3d', cooler: 'cool-arctic-lf3-360', ram: 'ram-corsair-veng-64-6000', gpu: 'gpu-rtx5090-fe', psu: 'psu-seasonic-tx1600', storage: ['ssd-crucial-t705-2tb', 'ssd-samsung-990pro-2tb'] } },
-  { name: 'Dual-GPU workstation', tag: '≈ $5.1k · 2× RTX 5080', build: { case: 'case-fractal-north', motherboard: 'mb-asus-x870e-e', cpu: 'cpu-r9-9950x', cooler: 'cool-arctic-lf3-360', ram: 'ram-crucial-pro-32-5600', gpu: 'gpu-rtx5080-fe', psu: 'psu-seasonic-tx1600', storage: ['ssd-samsung-990pro-2tb', 'ssd-samsung-990pro-2tb', 'hdd-wd-blue-4tb'], qty: { ram: 2, gpu: 2 } } },
-  { name: 'Pascal classic 2017', tag: 'used · GTX 1080', build: { case: 'case-nzxt-s340', motherboard: 'mb-asus-prime-z270-a', cpu: 'cpu-i7-7700k', cooler: 'cool-cm-hyper212', ram: 'ram-corsair-lpx-16-2400', gpu: 'gpu-gtx1080-fe', psu: 'psu-corsair-cx550m', storage: ['ssd-samsung-850evo-500gb'] } },
-  { name: 'Retro 2014 rig', tag: 'used · i7-4790K', build: { case: 'case-nzxt-h510', motherboard: 'mb-asus-z97-a', cpu: 'cpu-i7-4790k', cooler: 'cool-cm-hyper212', ram: 'ram-hyperx-fury-16-1866', gpu: 'gpu-gtx1080ti-fe', psu: 'psu-evga-500w1', storage: ['ssd-samsung-870evo-1tb', 'hdd-seagate-barracuda-2tb'] } },
-];
 
 const state = {
   catalog: null,
@@ -37,6 +34,8 @@ const state = {
   pickerEra: 'all',
   shop: { cond: 'used', site: 'us' },
   result: null,
+  me: { user: null, signIn: false }, // the signed-in account, if any
+  remote: null, // builds saved to the account (signed in only)
 };
 
 let scene = null;
@@ -51,22 +50,6 @@ function money(usd, { currency = state.currency } = {}) {
   }
   const v = usd * c.rate;
   return fmtCache.f.format(currency === 'CZK' ? Math.round(v / 10) * 10 : Math.round(v));
-}
-
-function capacity(gb) { return gb >= 1000 ? `${+(gb / 1000).toFixed(1)} TB` : `${gb} GB`; }
-
-function specLine(p) {
-  switch (p.category) {
-    case 'cpu': return `${p.cores}C/${p.threads}T · ${p.boostGHz.toFixed(1)} GHz · ${p.socket} · ${p.tdp} W${p.igpu ? ' · iGPU' : ''}`;
-    case 'motherboard': return `${p.socket} · ${p.chipset} · ${p.formFactor} · ${p.memoryType} ×${p.memorySlots} · ${p.m2Slots}× M.2${p.wifi ? ' · Wi-Fi' : ''}`;
-    case 'ram': return `${p.type}-${p.speed} CL${p.cas} · ${p.modules}×${p.capacityGB / p.modules} GB`;
-    case 'gpu': return `${p.vramGB} GB · ${p.tbp} W · ${p.lengthMm} mm · ${p.slots}-slot`;
-    case 'cooler': return p.type === 'aio' ? `${p.radiatorMm} mm AIO · rated ~${p.tdpRating} W` : `${p.type === 'low-profile' ? 'Low-profile' : 'Air tower'} · ${p.heightMm} mm · rated ~${p.tdpRating} W`;
-    case 'case': return `${p.formFactors.join('/')} · GPU ≤${p.maxGpuMm} mm · cooler ≤${p.maxCoolerMm} mm · ${p.psuForms.join('/')} PSU`;
-    case 'psu': return `${p.wattage} W · ${p.efficiency} · ${p.formFactor}${p.atx3 ? ' · ATX 3.x' : ''}`;
-    case 'storage': return `${capacity(p.capacityGB)} · ${p.interface === 'nvme' ? `NVMe PCIe ${p.pcieGen}.0` : p.kind === 'hdd' ? 'SATA HDD' : 'SATA SSD'} · ${p.readMBs.toLocaleString('en-US')} MB/s`;
-    default: return '';
-  }
 }
 
 function perfOf(p) {
@@ -240,7 +223,7 @@ function renderSlots() {
       if (!groups.length) rows.push(emptyRow(s, cls));
       groups.forEach((g, i) => rows.push(filledRow(s, g.part, `${cls}${i ? ' sub' : ''}`, g.qty)));
       if (groups.length && parts.storage.length < MAX_STORAGE) {
-        rows.push(`<li class="slot sub" data-slot="storage" data-add="1"><span class="slot-code"></span><button type="button" class="add-more" data-act="add-storage">${icon('plus')} Add a different drive</button></li>`);
+        rows.push(`<li class="slot sub" data-slot="storage" data-add="1"><span class="cat-tile"></span><button type="button" class="add-more" data-act="add-storage">${icon('plus')} Add a different drive</button></li>`);
       }
       continue;
     }
@@ -261,7 +244,7 @@ function emptyRow(s, cls) {
   const cpu = state.result.parts.cpu;
   const stock = s.key === 'cooler' && cpu?.boxCooler;
   return `<li class="${cls}" data-slot="${s.key}" tabindex="0" role="button" aria-label="Add ${esc(s.label)}">
-    <span class="slot-code">${s.code}</span>
+    ${catTile(s.key)}
     <div class="slot-main">
       <div class="slot-label">${esc(s.label)}</div>
       ${stock ? `<div class="slot-spec">Using the cooler bundled with the ${esc(cpu.name)}</div>` : ''}
@@ -307,7 +290,7 @@ function filledRow(s, p, cls, qty = 1) {
   const id = s.key === 'storage' ? ` data-id="${esc(p.id)}"` : '';
   const many = qty > 1 ? `${plural(qty, UNIT[s.key])} of ` : '';
   return `<li class="${cls} filled" data-slot="${s.key}"${id} tabindex="0" role="button" aria-label="Change ${esc(s.label)}: ${esc(many + p.name)}">
-    <span class="slot-code">${s.code}</span>
+    ${catTile(s.key)}
     <div class="slot-main">
       <div class="slot-label">${esc(s.label)}</div>
       <div class="slot-name">${qty > 1 ? `<span class="qty-x">${qty}×</span> ` : ''}<span class="brand-s">${esc(p.brand)}</span> ${esc(p.name)}</div>
@@ -497,7 +480,8 @@ function openPicker(slot, replaceId = null) {
   state.picker = { slot, replaceId };
   pickerReturnFocus = document.activeElement;
   const s = SLOT[slot];
-  $('#picker-code').textContent = `${s.code} / ${s.label}`;
+  $('#picker-code').textContent = `${state.catalog.parts[slot].length} ${slot === 'storage' ? 'drives' : 'options'}`;
+  $('#picker-icon').innerHTML = icon(`cat-${slot}`);
   const n = slot === 'storage' && replaceId ? state.build.storage.filter((d) => d === replaceId).length : qtyOf(state.build, slot);
   $('#picker-title').textContent = replaceId == null && slot === 'storage' && state.build.storage.length ? 'Add a different drive'
     : n > 1 ? `${PICK_TITLE[slot]} · replaces all ${n}` : PICK_TITLE[slot];
@@ -619,7 +603,7 @@ function renderShop() {
         <input type="checkbox" data-buy="${esc(l.key)}"${got ? ' checked' : ''}>
         <span class="box">${icon('check')}</span><span class="sr-only">Bought ${esc(p.name)}</span>
       </label>
-      <span class="slot-code">${l.code}</span>
+      ${catTile(l.slot)}
       <div class="shop-main">
         <div class="slot-label">${esc(l.label)}</div>
         <div class="shop-name">${l.qty > 1 ? `<span class="qty-x">${l.qty}×</span> ` : ''}<span class="brand-s">${esc(p.brand)}</span> ${esc(p.name)}</div>
@@ -715,54 +699,136 @@ function summary() {
   return { retail: r.price.retail, used: r.price.used, count: r.price.count, cpu: r.parts.cpu?.name || null, gpu };
 }
 
-function saveCurrent() {
+const signedIn = () => Boolean(state.me.user);
+const newBuildId = () => `b_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+
+/** The list "My builds" shows: the account's builds when signed in, otherwise this browser's. */
+function savedBuilds() {
+  return signedIn() ? state.remote || [] : store.listBuilds();
+}
+
+async function refreshRemote() {
+  if (!signedIn()) return;
+  try { state.remote = await account.listBuilds(); } catch (e) {
+    if (e.status === 401) { state.me = { ...state.me, user: null }; state.remote = null; }
+  }
+}
+
+async function saveCurrent() {
   if (!state.result.price.count) { toast('Add at least one part before saving.'); return; }
-  const saved = store.saveBuild({ id: state.savedId, name: state.name, build: state.build, summary: summary() });
-  if (!saved) { toast('Couldn’t save: this browser is blocking local storage.'); return; }
+  const entry = { id: state.savedId || newBuildId(), name: state.name, build: state.build, summary: summary() };
+  if (signedIn()) {
+    const btn = $('#btn-save');
+    btn.disabled = true;
+    try {
+      const saved = await account.saveBuild(entry);
+      const list = (state.remote || []).filter((b) => b.id !== saved.id);
+      state.remote = [saved, ...list];
+      state.savedId = saved.id;
+      state.dirty = false;
+      store.saveCurrent({ build: state.build, name: state.name, savedId: state.savedId });
+      updateBuildsCount();
+      toast(`Saved “${state.name}” to your account`);
+    } catch (e) {
+      if (e.status === 401) { state.me = { ...state.me, user: null }; return saveCurrent(); } // signed out elsewhere: save locally
+      toast(e.status === 409 ? e.message : 'Couldn’t reach the server, so the build wasn’t saved to your account. Try again in a moment.', { tone: 'bad', ms: 6000 });
+    } finally { btn.disabled = false; }
+    return;
+  }
+  const saved = store.saveBuild(entry);
+  if (!saved) { toast('Couldn’t save: this browser is blocking local storage.', { tone: 'bad' }); return; }
   state.savedId = saved.id;
   state.dirty = false;
   store.saveCurrent({ build: state.build, name: state.name, savedId: state.savedId });
   updateBuildsCount();
-  toast(`Saved “${state.name}” to My builds`);
+  toast(`Saved “${state.name}” in this browser`, state.me.signIn ? { action: 'Sign in to sync', onAction: () => { location.href = account.signInUrl('/build'); }, ms: 6000 } : {});
 }
 
 function updateBuildsCount() {
-  const n = store.listBuilds().length;
+  const n = savedBuilds().length;
   const el = $('#builds-count');
   el.hidden = !n; el.textContent = n;
 }
 
+async function openBuilds() {
+  const modal = $('#builds-modal');
+  if (signedIn()) {
+    $('#builds-list').innerHTML = '<div class="builds-loading">Loading your builds…</div>';
+    if (!modal.open) modal.showModal();
+    await refreshRemote();
+  }
+  renderBuilds();
+  if (!modal.open) modal.showModal();
+}
+
 function renderBuilds() {
-  const list = store.listBuilds();
+  const list = savedBuilds();
   const el = $('#builds-list');
+  $('#builds-where').textContent = signedIn() ? `Saved to ${state.me.user.name}’s Google account` : 'Saved in this browser';
+  const nudge = !signedIn() && state.me.signIn
+    ? `<div class="builds-signin"><span><b>Use it on every device.</b> Sign in with Google and your builds follow you.</span><a class="btn line sm" href="${esc(account.signInUrl('/build?builds=1'))}" rel="nofollow">Sign in</a></div>`
+    : '';
   if (!list.length) {
-    el.innerHTML = `<div class="builds-empty"><b>No saved builds yet</b>Builds you save are kept in this browser on this device. Use Share to move one to another device.</div>`;
+    el.innerHTML = `${nudge}<div class="builds-empty"><b>No saved builds yet</b>${signedIn() ? 'Press Save in the builder and the build is kept in your account.' : 'Builds you save are kept in this browser on this device. Use Share to move one to another device.'}</div>`;
     return;
   }
-  el.innerHTML = list.map((b) => {
+  el.innerHTML = nudge + list.map((b) => {
     const s = b.summary || {};
     const when = new Date(b.updatedAt || b.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
     return `<div class="saved${b.id === state.savedId ? ' current' : ''}" data-id="${esc(b.id)}">
       <h3>${esc(b.name)}</h3>
-      <div class="saved-price">${s.retail != null ? money(s.retail) : ''}</div>
+      <div class="saved-price num">${s.retail != null ? money(s.retail) : ''}</div>
       <div class="saved-meta">${s.count || 0} part${s.count === 1 ? '' : 's'} · saved ${esc(when)}${b.id === state.savedId ? ' · open now' : ''}</div>
       <div class="saved-parts">${esc([s.cpu, s.gpu].filter(Boolean).join(' + ') || 'No CPU or GPU yet')}</div>
       <div class="saved-actions">
-        <button type="button" class="btn line" data-act="load">Open</button>
+        <button type="button" class="btn line sm" data-act="load">Open</button>
         <button type="button" class="mini-btn danger" data-act="delete" title="Delete">${icon('trash')}<span class="sr-only">Delete</span></button>
       </div>
     </div>`;
   }).join('');
 }
 
-/* ---------------------------------------------------------------- toasts */
-function toast(msg, { action, onAction, ms = 4200 } = {}) {
-  const t = document.createElement('div');
-  t.className = 'toast';
-  t.innerHTML = `<span>${esc(msg)}</span>${action ? `<button type="button">${esc(action)}</button>` : ''}`;
-  if (action) t.querySelector('button').addEventListener('click', () => { onAction(); t.remove(); });
-  $('#toasts').append(t);
-  setTimeout(() => t.remove(), ms);
+async function deleteSaved(id) {
+  if (signedIn()) {
+    const idx = (state.remote || []).findIndex((b) => b.id === id);
+    if (idx < 0) return;
+    const removed = state.remote[idx];
+    try { await account.deleteBuild(id); } catch (e) { if (e.status !== 404) { toast('Couldn’t delete it just now. Please try again.', { tone: 'bad' }); return; } }
+    state.remote = state.remote.filter((b) => b.id !== id);
+    if (state.savedId === id) state.savedId = null;
+    renderBuilds(); updateBuildsCount();
+    toast(`Deleted “${removed.name}”`, {
+      action: 'Undo',
+      onAction: async () => {
+        try { const back = await account.saveBuild(removed); state.remote.splice(Math.min(idx, state.remote.length), 0, back); renderBuilds(); updateBuildsCount(); }
+        catch { toast('Couldn’t restore it.', { tone: 'bad' }); }
+      },
+    });
+    return;
+  }
+  const r = store.deleteBuild(id);
+  if (!r) return;
+  if (state.savedId === id) state.savedId = null;
+  renderBuilds(); updateBuildsCount();
+  toast(`Deleted “${r.removed.name}”`, { action: 'Undo', onAction: () => { store.restoreBuild(r.removed, r.idx); renderBuilds(); updateBuildsCount(); } });
+}
+
+/** After Google sign-in, builds saved in this browser move to the account. */
+async function moveLocalBuildsToAccount() {
+  const local = store.listBuilds();
+  if (!local.length) { toast('You’re signed in. Builds you save now follow your Google account.', { ms: 5000 }); return; }
+  try {
+    const r = await account.importBuilds(local);
+    state.remote = r.builds;
+    const moved = new Set(r.builds.map((b) => b.id));
+    store.keepBuilds(local.filter((b) => !moved.has(b.id)));
+    updateBuildsCount();
+    toast(r.imported
+      ? `You’re signed in. Moved ${r.imported} build${r.imported === 1 ? '' : 's'} from this browser to your account.`
+      : 'You’re signed in. Your builds are in your account.', { ms: 6000 });
+  } catch {
+    toast('You’re signed in, but builds saved in this browser couldn’t be moved yet. They’re still here.', { tone: 'bad', ms: 7000 });
+  }
 }
 
 /* ---------------------------------------------------------------- mobile tabs */
@@ -853,7 +919,7 @@ function bindEvents() {
       toast('Started a new build', { action: 'Undo', onAction: () => loadBuild(prev.build, prev.name, prev.savedId) });
     }
   });
-  $('#btn-builds').addEventListener('click', () => { renderBuilds(); $('#builds-modal').showModal(); });
+  $('#btn-builds').addEventListener('click', openBuilds);
   $('#builds-modal').addEventListener('click', (e) => {
     if (e.target === e.currentTarget || e.target.closest('[data-close]')) { e.currentTarget.close(); return; }
     const row = e.target.closest('.saved');
@@ -861,16 +927,9 @@ function bindEvents() {
     if (!row || !act) return;
     const id = row.dataset.id;
     if (act === 'load') {
-      const b = store.listBuilds().find((x) => x.id === id);
+      const b = savedBuilds().find((x) => x.id === id);
       if (b) { loadBuild(b.build, b.name, b.id); $('#builds-modal').close(); toast(`Opened “${b.name}”`); }
-    } else if (act === 'delete') {
-      const r = store.deleteBuild(id);
-      if (r) {
-        if (state.savedId === id) state.savedId = null;
-        renderBuilds(); updateBuildsCount();
-        toast(`Deleted “${r.removed.name}”`, { action: 'Undo', onAction: () => { store.restoreBuild(r.removed, r.idx); renderBuilds(); updateBuildsCount(); } });
-      }
-    }
+    } else if (act === 'delete') deleteSaved(id);
   });
   $('#btn-share').addEventListener('click', async () => {
     if (!state.result.price.count) { toast('Add some parts first, then share.'); return; }
@@ -915,21 +974,38 @@ function bindEvents() {
 }
 
 /* ---------------------------------------------------------------- boot */
+function setLoader(text) { const t = $('#loader-text'); if (t) t.textContent = text; }
+function loaderError(message, retry) {
+  const loading = $('#stage-loading');
+  loading.classList.add('error');
+  setLoader(message);
+  if (retry && !loading.querySelector('.btn')) {
+    const b = Object.assign(document.createElement('button'), { type: 'button', className: 'btn line sm', textContent: 'Try again' });
+    b.addEventListener('click', () => location.reload());
+    loading.append(b);
+  }
+}
+
 async function init() {
   const loading = $('#stage-loading');
+  const mePromise = account.me();
+  // start fetching the 3D engine while the catalog loads
+  const scenePromise = import('./scene.js');
+  scenePromise.catch(() => {});
   let data;
   try {
     const res = await fetch('/api/catalog');
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) throw new Error(res.status === 429 ? 'too many requests, wait a moment' : `HTTP ${res.status}`);
     data = await res.json();
   } catch (err) {
-    loading.classList.add('error');
-    loading.innerHTML = `<div>Couldn’t load the parts catalog (${esc(err.message)}). <button class="btn line" type="button" onclick="location.reload()">Try again</button></div>`;
+    loaderError(`Couldn’t load the parts catalog (${err.message}). Check your connection.`, true);
+    $('#slot-list').innerHTML = '';
     return;
   }
   const byId = {};
   for (const list of Object.values(data.parts)) for (const p of list) byId[p.id] = p;
   state.catalog = { ...data, byId };
+  setLoader('Preparing the 3D view…');
 
   const prefs = store.loadPrefs();
   state.currency = data.meta.currencies[prefs.currency] ? prefs.currency : 'USD';
@@ -947,6 +1023,8 @@ async function init() {
     <p><b>Power</b> adds typical CPU and GPU draw under gaming and worst-case loads, plus board, memory, drives and fans. The recommended supply adds 30% headroom for transient spikes.</p>
     <p><b>Compatibility</b> checks socket and chipset support, memory type and slots, board and PSU form factor, GPU length, cooler height and radiator mounts, M.2 slots, drive bays, and power. Extra memory kits, graphics cards and drives are limited by the board’s memory slots, x16 slots and their spacing, M.2 slots and SATA ports, and the case’s expansion slots and bays. Slot spacing follows each board’s usual layout and is approximate.</p>`;
 
+  state.me = await mePromise;
+  if (state.me.user) await refreshRemote();
   updateBuildsCount();
   bindEvents();
   setTab('parts');
@@ -954,11 +1032,29 @@ async function init() {
   // Restore: share link > in-progress build > empty
   const shared = decodeShare(location.hash);
   const current = store.loadCurrent();
-  if (shared) { state.build = normalizeBuild(shared.build, byId); state.name = shared.name || 'Shared build'; }
-  else if (current?.build) { state.build = normalizeBuild(current.build, byId); state.name = current.name || 'Untitled build'; state.savedId = current.savedId || null; }
+  const hadParts = (b) => b && SLOTS.some((s) => (s.multi ? b[s.key]?.length : b[s.key]));
+  if (shared) {
+    state.build = normalizeBuild(shared.build, byId); state.name = shared.name || 'Shared build';
+    if (hadParts(current?.build) && encodeShare(normalizeBuild(current.build, byId), '') !== encodeShare(state.build, '')) {
+      toast(`Opened “${state.name}”. Your previous build was put aside.`, { action: 'Go back to it', ms: 8000, onAction: () => { loadBuild(current.build, current.name, current.savedId); history.replaceState(null, '', location.pathname); } });
+    }
+  } else if (current?.build) { state.build = normalizeBuild(current.build, byId); state.name = current.name || 'Untitled build'; state.savedId = current.savedId || null; }
   $('#build-name').value = state.name;
   state.result = evaluate(state.build, state.catalog, { resolution: state.resolution });
   render();
+  $('#app').removeAttribute('aria-busy');
+
+  // links from part pages (?add=<part id>) and the account menu (?builds=1)
+  const q = new URLSearchParams(location.search);
+  const add = byId[q.get('add')];
+  if (q.has('add') || q.has('builds')) history.replaceState(null, '', `${location.pathname}${location.hash}`);
+  if (add) {
+    const prev = structuredClone(state.build);
+    setPart(add.category, add.id);
+    toast(`Added the ${add.name} to your build`, { action: 'Undo', onAction: () => { state.build = prev; commit(); } });
+  }
+  if (q.has('builds')) openBuilds();
+  if (window.mcbSignin === 'ok' && state.me.user) moveLocalBuildsToAccount();
   // a shopping-list link opens the list with the sender's condition and eBay site
   if (shared?.shop && CONDITIONS[shared.shop]) {
     state.shop.cond = shared.shop;
@@ -968,7 +1064,7 @@ async function init() {
 
   // 3D last, so the lists are usable even if WebGL fails
   try {
-    const { createScene } = await import('./scene.js');
+    const { createScene } = await scenePromise;
     scene = createScene($('#viewport'), {
       onPick: (slot) => openPicker(slot, slot === 'storage' ? state.build.storage[0] || null : null),
       onHover: (slot, x, y) => {
@@ -987,8 +1083,8 @@ async function init() {
     loading.classList.add('done');
   } catch (err) {
     console.error(err);
-    loading.classList.add('error');
-    loading.textContent = 'The 3D view needs WebGL, which isn’t available here. The builder still works.';
+    const webgl = /webgl|context/i.test(String(err?.message));
+    loaderError(webgl ? 'The 3D view needs WebGL, which isn’t available in this browser. Everything else still works.' : 'The 3D view didn’t load. Everything else still works.', !webgl);
   }
 }
 
