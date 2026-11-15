@@ -2,17 +2,19 @@
 
 A 3D PC builder website. Start with an empty case, add parts, and watch each one fly in and seat itself. Every change re-runs compatibility checks and updates price (new and used), power draw and FPS estimates for seven popular games.
 
+Around the builder is a full site: a home page, a page for every part and category, example builds, an About page with an FAQ, privacy, cookie and terms pages, optional sign-in with Google so saved builds follow you between devices, and light and dark themes.
+
 ## Run it
 
 ```bash
 npm install
 npm start            # http://localhost:4030  (PORT=8080 npm start to change)
 npm run dev          # restarts on file changes
-npm test             # estimate-engine tests
+npm test             # engine, prices, security, sign-in, saved builds, and every page of the site
 npm run validate     # checks data/ for missing fields, duplicate ids, missing prices
 ```
 
-Needs Node 20 or newer. The only runtime dependencies are Express and three.js; three.js is served from `node_modules`, so nothing loads from a CDN except the Google Fonts stylesheet.
+Needs Node 20.12 or newer. The only runtime dependencies are Express and three.js. three.js is served from `node_modules` and the Geist fonts from `public/fonts`, so nothing loads from a CDN or a third party.
 
 ## Run it with pm2
 
@@ -28,6 +30,25 @@ pm2 startup                   # prints one command; run it so pm2 starts again a
 If `./update.sh` started the server earlier without pm2, stop that copy first so the port is free: `kill $(cat .server.pid) && rm .server.pid`. From then on `./update.sh` restarts the pm2 process.
 
 Day to day: `pm2 logs my-computer-build` shows the log, `pm2 reload my-computer-build` restarts it with new code or edited files in `data/` (the catalog loads at start), and `pm2 stop` or `pm2 delete my-computer-build` stops it. It runs as one process on purpose, because the live price refresher keeps one cache file and one API quota. On Windows, `pm2 startup` doesn't work; use [pm2-installer](https://github.com/jessety/pm2-installer) or a Task Scheduler entry that runs `pm2 resurrect` at logon. To put the site on the internet, point a reverse proxy such as nginx or Caddy at `http://localhost:4030`.
+
+## Going live
+
+Set these in `.env` (see `.env.example` for all of them), then `pm2 reload my-computer-build`:
+
+- `SITE_URL=https://your-domain`: canonical links, the sitemap, social images and the Google callback use it. Without it they use whatever host the request came in on.
+- `CREATOR_URL` (and optionally `CREATOR_NAME`): the "Designed and built by" credit in the footer and the author in the page metadata.
+- `CONTACT_EMAIL`, and `OPERATOR_NAME` if the site is run by someone other than the creator: shown on the About, privacy and terms pages.
+- `TRUST_PROXY`: leave at `loopback` behind nginx or Caddy on the same machine. Behind Cloudflare and nginx, use `2`, otherwise every visitor shares Cloudflare's IP for rate limiting.
+
+**Sign in with Google** is off until both Google keys are set:
+
+1. In the [Google Cloud console](https://console.cloud.google.com/apis/credentials), create a project, set up the OAuth consent screen (External, app name "My Computer Build", your support email, privacy policy `https://your-domain/privacy`, terms `https://your-domain/terms`). Only the `openid` and `profile` scopes are used, so Google doesn't need to review the app.
+2. Create an OAuth client ID of type *Web application* with the authorised redirect URI `https://your-domain/auth/google/callback` (add `http://localhost:4030/auth/google/callback` too for local testing).
+3. Put the client ID and secret in `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, and a long random `SESSION_SECRET` (`openssl rand -hex 32`).
+
+Signed-in builds are stored as one JSON file per account in `.data/users/` (back it up with the rest of the server; `USER_DATA_DIR` moves it). Nothing else is stored: no email address, no analytics.
+
+**Search engines**: add the site in [Google Search Console](https://search.google.com/search-console) and [Bing Webmaster Tools](https://www.bing.com/webmasters) and submit `https://your-domain/sitemap.xml`. Bing's index also feeds ChatGPT search and Copilot.
 
 ## Updating a running copy
 
@@ -45,10 +66,36 @@ It stops before touching anything if you have uncommitted changes to tracked fil
 - **3D view** (`public/js/scene.js`, `public/js/models.js`): procedural low-poly models, one per category, sized from real specs (GPU length and slot width, cooler height, radiator size, case dimensions, board form factor). Parts that have nowhere to mount yet (a CPU with no motherboard) wait on a "bench" in front of the case and fly in when their mount appears. Incompatible parts glow red. When the build is complete and has no errors, the LEDs come on and the fans spin. Rendering is on demand: when nothing moves, nothing is drawn.
 - **Estimate engine** (`shared/engine.js`): pure functions shared by the browser and the server. Compatibility rules, power, price totals, FPS model.
 - **Several of the same part**: memory kits, graphics cards and drives have a quantity stepper. The board and case set the limit: memory slots and the board's capacity, full-length x16 slots and how far apart they sit compared with the card's thickness, the case's expansion slots, M.2 slots, SATA ports and drive bays. When the limit is reached, the + button explains why. Each stick, card and drive is its own 3D model and animates in and out separately; memory fills the slots in the order boards recommend (A2 and B2 first). A second graphics card adds price and power but not FPS, because games use one card.
-- **Saved builds**: `localStorage` in the browser (`public/js/store.js`). Share links encode the build in the URL hash, with `q=r2g2` for two memory kits and two graphics cards.
+- **Saved builds**: `localStorage` in the browser (`public/js/store.js`), or the account when signed in with Google (`lib/userstore.js`, `lib/auth.js`). On first sign-in, builds saved in the browser move into the account. The account menu can delete everything stored on the server. Share links encode the build in the URL hash, with `q=r2g2` for two memory kits and two graphics cards.
+- **Pages** (`lib/web/`): rendered on the server so search engines and link previews see real content. Home, `/build` (the builder), `/parts` and a page per category and per part (specs, price, what it works with), `/builds` with six example builds (parts, FPS table, compatibility notes), `/about` with an FAQ, `/privacy`, `/cookies`, `/terms` and a 404 page. Old `/#b=` share links still open in the builder.
+- **SEO**: a title and description per page sized for search results, canonical links, Open Graph and Twitter cards with an image per section, JSON-LD (WebSite, Organization, WebApplication, FAQPage, BreadcrumbList, ItemList, AboutPage), `/sitemap.xml` built from the catalog with last-modified dates, `/robots.txt` (AI search crawlers are welcome), `/llms.txt` (a plain summary for AI assistants) and a web app manifest.
+- **Security** (`lib/security.js`): per-visitor rate limits (sliding window, `RateLimit-*` and `Retry-After` headers, IPv6 counted per /64, signed-in users per account), a CORS allowlist that refuses cross-site writes (CSRF protection on top of SameSite cookies), and a strict Content-Security-Policy that allows the two inline scripts by hash.
 - **Shopping list** (`public/js/shop.js`): one line per part with an eBay search for it (Buy It Now, used / new / any condition, on eBay.com, eBay.de or eBay.co.uk), the price to aim for, and a box to tick off what's bought (kept in the browser). It opens from the totals bar or the price panel, and the app offers it when a build first becomes ready to boot. Export it as a link (`&shop=used&site=de` added to a share link opens the list), as plain text with every link, as CSV (amounts in the chosen currency), or print it. Search text comes from `shopQuery()` in `lib/prices/match.js`: graphics cards search by chip and leave out the faster sibling (`GTX 1080 -Ti -Super`). An `ebay.query` override in `data/price-sources.json` replaces it, and `ebay.categoryId` sets the category, which is only used on eBay.com because category ids differ between eBay sites.
 - **Catalog**: 163 parts from 2014 to 2025, including a GTX 10-series era (GTX 1080 / 1070 Ti / 1070 / 1060 3GB / 1050 Ti, GTX 980 Ti / 970, RX Vega 56 / 64, RX 480 / 570) with matching Intel 6th to 9th gen and Ryzen 1000 / 2000 CPUs, Z170 / Z270 / Z370 / B360 and X370 / B350 / X470 boards, DDR4-2400/3000 kits and period cases, coolers, power supplies and SSDs. LGA1151 boards list the CPU generations they can't run in `unsupportedFamilies` (6th/7th gen and 8th/9th gen share the socket but not the boards), and AM4 boards list the ones that need a BIOS update in `biosUpdateFor`. CPUs with four threads or fewer get a stutter warning.
-- **API** (`server.js`): `GET /api/catalog`, `GET /api/parts/:category?q=`, `GET /api/parts/:category/:id`, `GET /api/games`, `POST /api/evaluate` with `{ "build": {...}, "resolution": "1440p" }`. A build may carry `"qty": { "ram": 2, "gpu": 2 }`; repeat a drive id in `storage` for several identical drives.
+- **API** (`server.js`): `GET /api/catalog`, `GET /api/parts/:category?q=`, `GET /api/parts/:category/:id`, `GET /api/games`, `POST /api/evaluate` with `{ "build": {...}, "resolution": "1440p" }`. A build may carry `"qty": { "ram": 2, "gpu": 2 }`; repeat a drive id in `storage` for several identical drives. Signed in: `GET /api/me`, `GET /api/builds`, `PUT` and `DELETE /api/builds/:id`, `POST /api/builds/import`, `DELETE /api/me`.
+
+| Limit (per visitor, per minute) | Default | Setting |
+| --- | --- | --- |
+| Every request, including files | 1200 | `RATE_LIMIT_FLOOD` |
+| Pages | 240 | `RATE_LIMIT_PAGES` |
+| API | 120 | `RATE_LIMIT_API` |
+| `POST /api/evaluate` | 30 | |
+| Saving or deleting builds | 60 | |
+| Sign-in attempts | 20 per 10 minutes | |
+
+## Logo, social images and screenshots
+
+The logo is an isometric cube with its lid lifting off in the accent blue (`#3060ff`): a case being opened, seen from the angle of the 3D view. It lives as SVG in `lib/web/icons.js` (`MARK`) and `public/favicon.svg`, which switches colours with the system theme.
+
+The PNG icons, the eleven Open Graph images in `public/og/` and the home page screenshots are rendered from the running site with Playwright:
+
+```bash
+npm start &
+npm i --no-save playwright && npx playwright install chromium   # once
+node scripts/render-assets.mjs http://localhost:4030 all   # or: shots | og | icons
+```
+
+Re-run it after changing the builder's look or the catalog, so the images match the site. Playwright is not a dependency of the site itself.
 
 ## The numbers are estimates
 

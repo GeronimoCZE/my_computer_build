@@ -4,7 +4,7 @@
 //   npm start                                   # in one terminal
 //   node scripts/render-assets.mjs http://localhost:4030
 //
-// Needs Playwright with Chromium (npm i -g playwright && npx playwright install chromium).
+// Needs Playwright with Chromium: npm i --no-save playwright && npx playwright install chromium
 // It isn't a dependency of the site: run this only after changing the look or the example builds.
 import { createRequire } from 'node:module';
 import { writeFile, mkdir } from 'node:fs/promises';

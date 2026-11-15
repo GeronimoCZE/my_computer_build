@@ -19,14 +19,14 @@ export function specLine(p) {
 
 /** Category names for headings and links. */
 export const CATEGORY = {
-  case: { one: 'Case', many: 'Cases', slug: 'cases' },
-  motherboard: { one: 'Motherboard', many: 'Motherboards', slug: 'motherboards' },
-  cpu: { one: 'Processor', many: 'Processors', slug: 'cpus' },
-  cooler: { one: 'CPU cooler', many: 'CPU coolers', slug: 'cpu-coolers' },
-  ram: { one: 'Memory kit', many: 'Memory', slug: 'memory' },
-  gpu: { one: 'Graphics card', many: 'Graphics cards', slug: 'graphics-cards' },
-  storage: { one: 'Drive', many: 'Storage', slug: 'storage' },
-  psu: { one: 'Power supply', many: 'Power supplies', slug: 'power-supplies' },
+  case: { one: 'Case', many: 'Cases', noun: 'cases', slug: 'cases' },
+  motherboard: { one: 'Motherboard', many: 'Motherboards', noun: 'motherboards', slug: 'motherboards' },
+  cpu: { one: 'Processor', many: 'Processors', noun: 'processors', slug: 'cpus' },
+  cooler: { one: 'CPU cooler', many: 'CPU coolers', noun: 'CPU coolers', slug: 'cpu-coolers' },
+  ram: { one: 'Memory kit', many: 'Memory', noun: 'memory kits', slug: 'memory' },
+  gpu: { one: 'Graphics card', many: 'Graphics cards', noun: 'graphics cards', slug: 'graphics-cards' },
+  storage: { one: 'Drive', many: 'Storage', noun: 'drives', slug: 'storage' },
+  psu: { one: 'Power supply', many: 'Power supplies', noun: 'power supplies', slug: 'power-supplies' },
 };
 export const categoryBySlug = (slug) => Object.keys(CATEGORY).find((k) => CATEGORY[k].slug === slug) || null;
 

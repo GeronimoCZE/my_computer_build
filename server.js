@@ -86,7 +86,7 @@ const auth = createAuth({
   origin: (req) => originFor(site, req),
   isHttps,
 });
-const users = createUserStore({ dir: path.join(ROOT, '.data', 'users'), byId: catalog.byId });
+const users = createUserStore({ dir: process.env.USER_DATA_DIR || path.join(ROOT, '.data', 'users'), byId: catalog.byId });
 
 app.use(securityHeaders({ isHttps, scriptHashes: INLINE_SCRIPT_HASHES }));
 app.use(auth.attachUser);
