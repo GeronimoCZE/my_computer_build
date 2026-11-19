@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 
 export const M = (mm) => mm / 100;
-export const ACCENT = new THREE.Color('#ffb02e');
+export const ACCENT = new THREE.Color('#3060ff'); // the logo lid's signal blue
 
 /* ---------------------------------------------------------------- materials */
 
@@ -85,7 +85,7 @@ export function createMaterials() {
     blade: std({ color: '#1a1b1e', roughness: 0.55, side: THREE.DoubleSide }),
     bladeLight: std({ color: '#e7e7ea', roughness: 0.55, side: THREE.DoubleSide }),
     rubber: std({ color: '#0b0b0c', roughness: 0.9 }),
-    led: std({ color: '#2a2016', emissive: ACCENT.clone(), emissiveIntensity: 0.15, roughness: 0.4 }),
+    led: std({ color: '#161a26', emissive: ACCENT.clone(), emissiveIntensity: 0.15, roughness: 0.4 }),
     label: std({ color: '#e9e4da', roughness: 0.8 }),
     wood: std({ color: '#7a5233', roughness: 0.75 }),
     woodLight: std({ color: '#9a6c45', roughness: 0.75 }),
